@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,15 +12,70 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  overflow: hidden;
 }
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Bible content styling */
+.bible-content {
+  line-height: 1.8;
+}
+
+.bible-content p {
+  margin-bottom: 1rem;
+}
+
+.bible-content .verse {
+  display: inline;
+}
+
+.bible-content .verse-num {
+  font-size: 0.75rem;
+  vertical-align: super;
+  color: #60a5fa;
+  margin-right: 0.25rem;
+  font-weight: 600;
+}
+
+.bible-content .chapter-num {
+  font-size: 2rem;
+  font-weight: 300;
+  color: #60a5fa;
+  margin-right: 0.5rem;
+}
+
+.bible-content h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #93c5fd;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.bible-content .selah {
+  font-style: italic;
+  color: #9ca3af;
+}
+
