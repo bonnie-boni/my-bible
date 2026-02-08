@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, User, Menu, StickyNote } from 'lucide-react';
+import {Menu, StickyNote } from 'lucide-react';
 import { useState } from 'react';
 
 interface HeaderProps {
@@ -11,7 +11,7 @@ interface HeaderProps {
 }
 
 export default function Header({ 
-  selectedVersion = 'ESV Bible', 
+  selectedVersion = 'NIV', 
   onVersionChange,
   onMenuClick,
   onNotesClick 

@@ -19,7 +19,7 @@ export default function Home() {
   const [audioNarrator, setAudioNarrator] = useState<string | undefined>(undefined);
   const [audioDuration, setAudioDuration] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
-  const [bibleId, setBibleId] = useState('de4e12af7f28f599-02'); // ESV Bible
+  const [bibleId, setBibleId] = useState('de4e12af7f28f599-01'); // ESV Bible
   const [currentVerse, setCurrentVerse] = useState<number>(1);
   
   // Mobile menu states
