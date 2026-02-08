@@ -1,36 +1,161 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# My Bible & I 📖
 
-## Getting Started
+A modern, feature-rich Bible reading application built with Next.js, React, and the Bible API. Read, study, and take notes on God's Word in a beautiful, intuitive interface.
 
-First, run the development server:
+## Features ✨
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Complete Bible Navigation**: Browse through Old and New Testament books with easy chapter selection
+- **Beautiful Reading Experience**: Clean, distraction-free reading interface with proper verse formatting
+- **Notes & Insights**: Take personal notes linked to specific verses, automatically saved to local storage
+- **Audio Player**: Simulated audio playback interface for listening to scripture (ready for integration)
+- **Search Functionality**: Search for books, verses, and keywords (UI ready)
+- **Multiple Bible Versions**: Switch between ESV, KJV, NIV, and NKJV translations
+- **Responsive Design**: Fully responsive UI that works on desktop and mobile devices
+- **Dark Theme**: Eye-friendly dark mode optimized for extended reading sessions
+
+## Technology Stack 🛠️
+
+- **Framework**: Next.js 16 (App Router)
+- **UI Library**: React 19
+- **Styling**: Tailwind CSS 4
+- **Icons**: Lucide React
+- **API**: Bible API (https://scripture.api.bible/)
+- **Language**: TypeScript
+
+## Getting Started 🚀
+
+### Prerequisites
+
+- Node.js 18+ 
+- pnpm (or npm/yarn)
+- Bible API key from [scripture.api.bible](https://scripture.api.bible/)
+
+### Installation
+
+1. **Install dependencies:**
+   ```bash
+   pnpm install
+   ```
+
+2. **Set up environment variables:**
+   
+   The `.env.local` file should already be configured with:
+   ```env
+   NEXT_PUBLIC_BIBLE_API=your_api_key_here
+   NEXT_PUBLIC_BIBLE_API_URL=https://api.scripture.api.bible/v1/
+   ```
+   
+   Replace the API key with your own from scripture.api.bible if needed.
+
+3. **Run the development server:**
+   ```bash
+   pnpm dev
+   ```
+
+4. **Open your browser:**
+   
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## Project Structure 📁
+
+```
+mybible/
+├── app/
+│   ├── layout.tsx          # Root layout
+│   ├── page.tsx            # Main page with app logic
+│   └── globals.css         # Global styles
+├── components/
+│   ├── Navigation.tsx      # Sidebar navigation for books/chapters
+│   ├── BibleReader.tsx     # Main reading area
+│   ├── NotesPanel.tsx      # Notes and insights panel
+│   ├── Header.tsx          # Top header with search and settings
+│   └── AudioPlayer.tsx     # Bottom audio player
+├── lib/
+│   ├── bible-api.ts        # API integration functions
+│   └── types.ts            # TypeScript type definitions
+└── .env.local              # Environment variables
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Components Overview 🧩
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Navigation
+- Collapsible Old/New Testament sections
+- Book selection with chapter grids
+- Visual indication of current selection
+- Responsive hide/show functionality
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### BibleReader
+- Displays chapter content with proper formatting
+- Chapter navigation (previous/next)
+- Verse numbering and styling
+- Loading states
 
-## Learn More
+### NotesPanel
+- Add, view, and delete notes
+- Notes linked to specific verses
+- Local storage persistence
+- Quick study tips section
+- Auto-save indication
 
-To learn more about Next.js, take a look at the following resources:
+### Header
+- Logo and branding
+- Search bar (UI ready for implementation)
+- Bible version selector
+- Settings and user profile buttons
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### AudioPlayer
+- Play/pause controls
+- Progress bar with seek functionality
+- Playback speed control (1x, 1.25x, 1.5x, 1.75x, 2x)
+- Volume control
+- Chapter information display
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Integration 🌐
 
-## Deploy on Vercel
+The app uses the Bible API from scripture.api.bible. Key endpoints:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `GET /bibles` - List available Bible versions
+- `GET /bibles/{bibleId}/books` - Get all books
+- `GET /bibles/{bibleId}/books/{bookId}/chapters` - Get chapters for a book
+- `GET /bibles/{bibleId}/chapters/{chapterId}` - Get chapter content
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Customization 🎨
+
+### Theme Colors
+Edit `app/globals.css` to customize colors:
+- Primary: Blue (#60a5fa)
+- Background: Dark gray (#0a0a0a)
+- Cards: Gray (#1f2937)
+
+### Default Bible
+Change the default Bible version in `app/page.tsx`:
+```typescript
+const [bibleId] = useState('de4e12af7f28f599-02'); // ESV Bible
+```
+
+## Future Enhancements 💡
+
+- [ ] Implement actual search functionality
+- [ ] Add real audio narration integration
+- [ ] User authentication and cloud sync for notes
+- [ ] Bookmarking system
+- [ ] Reading plans and daily devotionals
+- [ ] Cross-references and study tools
+- [ ] Highlighting and text selection
+- [ ] Share verses on social media
+- [ ] Offline mode with service workers
+- [ ] Multiple language support
+
+## License 📄
+
+This project is open source and available under the MIT License.
+
+## Acknowledgments 🙏
+
+- Bible content provided by [Bible API](https://scripture.api.bible/)
+- Icons by [Lucide](https://lucide.dev/)
+- Built with [Next.js](https://nextjs.org/)
+
+---
+
+Built with ❤️ for Bible readers everywhere

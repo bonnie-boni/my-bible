@@ -3,7 +3,8 @@ export interface BibleBook {
   name: string;
   abbreviation: string;
   nameLong: string;
-  chapters?: number[];
+  chapters?: BibleChapter[];
+  chaptersCount?: number;
 }
 
 export interface BibleChapter {
@@ -11,6 +12,7 @@ export interface BibleChapter {
   bookId: string;
   number: string;
   reference: string;
+  position?: number;
 }
 
 export interface BibleVerse {
@@ -20,16 +22,37 @@ export interface BibleVerse {
   chapterId: string;
   reference: string;
   text: string;
+  verseNumber?: number;
 }
 
 export interface BibleContent {
   id: string;
-  orgId: string;
+  orgId?: string;
   bookId: string;
-  chapterId: string;
+  chapterId?: string;
   reference: string;
   content: string;
   verseCount: number;
+  copyright?: string;
+}
+
+export interface BibleAudioSection {
+  id: string;
+  start: number;
+  end: number;
+  verseStart: number;
+  verseEnd: number;
+  text: string;
+}
+
+export interface BibleAudio {
+  id: string;
+  chapterId: string;
+  reference: string;
+  url: string;
+  duration: number;
+  narrator?: string;
+  sections: BibleAudioSection[];
 }
 
 export interface Note {
@@ -37,4 +60,15 @@ export interface Note {
   verseReference: string;
   content: string;
   createdAt: string;
+}
+
+export interface Bible {
+  id: string;
+  name: string;
+  abbreviation: string;
+  language: {
+    id: string;
+    name: string;
+  };
+  description?: string;
 }

@@ -12,11 +12,24 @@
   --font-mono: var(--font-geist-mono);
 }
 
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Custom scrollbar */
@@ -38,6 +51,12 @@ body {
   background: #6b7280;
 }
 
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #1f2937;
+}
+
 /* Bible content styling */
 .bible-content {
   line-height: 1.8;
@@ -51,6 +70,7 @@ body {
   display: inline;
 }
 
+.bible-content .v,
 .bible-content .verse-num {
   font-size: 0.75rem;
   vertical-align: super;
@@ -79,3 +99,81 @@ body {
   color: #9ca3af;
 }
 
+/* Verse highlighting for audio sync */
+.bible-content .verse-highlight {
+  background-color: rgba(59, 130, 246, 0.2);
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Mobile touch improvements */
+@media (max-width: 768px) {
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .bible-content {
+    line-height: 1.7;
+    font-size: 0.9375rem;
+  }
+  
+  .bible-content .v,
+  .bible-content .verse-num {
+    font-size: 0.65rem;
+  }
+  
+  .bible-content h3 {
+    font-size: 1rem;
+    margin-top: 1.5rem;
+  }
+}
+
+/* Landscape phone support */
+@media (max-height: 500px) and (orientation: landscape) {
+  .bible-content {
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+}
+
+/* Print styles */
+@media print {
+  .bible-content {
+    color: #000;
+    line-height: 1.6;
+  }
+  
+  .bible-content .v,
+  .bible-content .verse-num {
+    color: #666;
+  }
+}
+
+/* Focus visible for accessibility */
+*:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Loading animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.hidden {
+  display: none;
+}

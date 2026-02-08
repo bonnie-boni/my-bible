@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bible Sanctuary - Read and Study the Bible",
+  title: "My Bible & I - Read and Study the Bible",
   description: "A modern Bible reading app for studying God's Word",
 };
 
