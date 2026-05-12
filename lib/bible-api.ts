@@ -1,14 +1,44 @@
 import { BibleBook, BibleChapter, BibleContent, Bible, BibleVerse, BibleAudio } from './types';
 
-const API_KEY = process.env.NEXT_PUBLIC_BIBLE_API || process.env.BIBLE_API || '';
-const API_URL = process.env.NEXT_PUBLIC_BIBLE_API_URL || process.env.BIBLE_API_URL || 'https://api.scripture.api.bible/v1/';
+// Prefer NEXT_PUBLIC vars; remove legacy BIBLE_API_* fallbacks
+const API_KEY = process.env.NEXT_PUBLIC_BIBLE_API || '';
+const API_URL = process.env.NEXT_PUBLIC_BIBLE_API_URL || 'https://api.scripture.api.bible/v1/';
+
+const LOCAL_BIBLES: Bible[] = [
+  { id: 'local-goodnews', name: 'Good News Bible', abbreviation: 'GNB', language: { id: 'en', name: 'English' } },
+  { id: 'local-kingjames', name: 'King James Version', abbreviation: 'KJV', language: { id: 'en', name: 'English' } },
+  { id: 'local-swahili', name: 'Swahili (SPB)', abbreviation: 'SWA', language: { id: 'sw', name: 'Swahili' } },
+];
+
+const LOCAL_FILE_MAP: Record<string, string> = {
+  'local-goodnews': '/goodnews.xml',
+  'local-kingjames': '/kingjames.xml',
+  'local-swahili': '/swahili.spb',
+};
+
+type LocalParsedChapter = {
+  number: string;
+  verses: Array<{ number: string; text: string }>;
+};
+
+type LocalParsedBook = {
+  number: string;
+  name: string;
+  chapters: LocalParsedChapter[];
+};
+
+type LocalParsedBible = {
+  books: LocalParsedBook[];
+};
+
+const localBibleCache = new Map<string, LocalParsedBible>();
 
 const headers = {
   'api-key': API_KEY,
 };
 
 // Cache for API responses
-const cache = new Map<string, { data: any; timestamp: number }>();
+const cache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 async function fetchWithCache<T>(url: string, cacheKey: string): Promise<T> {
@@ -33,15 +63,100 @@ async function fetchWithCache<T>(url: string, cacheKey: string): Promise<T> {
   }
 }
 
+async function getLocalParsedBible(bibleId: string): Promise<LocalParsedBible> {
+  const cached = localBibleCache.get(bibleId);
+  if (cached) return cached;
+
+  const path = LOCAL_FILE_MAP[bibleId];
+  if (!path) throw new Error(`Local bible file not configured for ${bibleId}`);
+
+  const res = await fetch(path);
+  const text = await res.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'application/xml');
+
+  const books: LocalParsedBook[] = Array.from(doc.getElementsByTagName('BIBLEBOOK')).map((bookEl) => {
+    const number = bookEl.getAttribute('bnumber') || '';
+    const name = bookEl.getAttribute('bname') || bookEl.getAttribute('btitle') || `Book ${number}`;
+    const chapterNodes = Array.from(bookEl.getElementsByTagName('CHAPTER'));
+
+    const chapters: LocalParsedChapter[] = chapterNodes.map((chapterEl) => {
+      const chapterNumber = chapterEl.getAttribute('cnumber') || '';
+      const verseNodes = Array.from(chapterEl.getElementsByTagName('VERS'));
+      const verses = verseNodes.map((verseEl) => ({
+        number: verseEl.getAttribute('vnumber') || '',
+        text: verseEl.textContent || '',
+      }));
+      return { number: chapterNumber, verses };
+    });
+
+    return { number, name, chapters };
+  });
+
+  const parsed = { books };
+  localBibleCache.set(bibleId, parsed);
+  return parsed;
+}
+
+function getAbbreviation(bookName: string): string {
+  const words = bookName.trim().split(/\s+/);
+  if (words.length === 1) {
+    return words[0].slice(0, 3).toUpperCase();
+  }
+
+  // Preserve numeric prefixes like "1 Samuel" -> "1SA"
+  if (/^\d+$/.test(words[0])) {
+    const next = words[1] || '';
+    return `${words[0]}${next.slice(0, 2)}`.toUpperCase();
+  }
+
+  return words.map((w) => w[0] || '').join('').slice(0, 3).toUpperCase();
+}
+
 export async function getBibles(): Promise<Bible[]> {
-  return fetchWithCache<Bible[]>(`${API_URL}bibles`, 'bibles');
+  // For now the app uses local versions from /public
+  return LOCAL_BIBLES;
+
+  // return fetchWithCache<Bible[]>(`${API_URL}bibles`, 'bibles');
 }
 
 export async function getBooks(bibleId: string = 'de4e12af7f28f599-02'): Promise<BibleBook[]> {
+  // Local XML parsing for public files when using a local bible id
+  if (bibleId.startsWith('local-')) {
+    const parsed = await getLocalParsedBible(bibleId);
+    return parsed.books.map((b) => {
+      return {
+        id: `${bibleId}-b${b.number}`,
+        name: b.name,
+        abbreviation: getAbbreviation(b.name),
+        nameLong: b.name,
+      } as BibleBook;
+    });
+  }
+
   return fetchWithCache<BibleBook[]>(`${API_URL}bibles/${bibleId}/books`, `books-${bibleId}`);
 }
 
 export async function getChapters(bibleId: string, bookId: string): Promise<BibleChapter[]> {
+  if (bibleId.startsWith('local-')) {
+    // bookId is expected to be like `${bibleId}-b{number}`
+    const parts = bookId.split('-b');
+    const bnum = parts[1] || bookId;
+    const parsed = await getLocalParsedBible(bibleId);
+    const book = parsed.books.find((b) => b.number === bnum);
+    if (!book) return [];
+    const chapters = book.chapters.map((c) => {
+      const cnum = c.number;
+      return {
+        id: `${bookId}-c${cnum}`,
+        bookId: bookId,
+        number: cnum,
+        reference: `${book.name} ${cnum}`,
+      } as BibleChapter;
+    });
+    return chapters;
+  }
+
   return fetchWithCache<BibleChapter[]>(
     `${API_URL}bibles/${bibleId}/books/${bookId}/chapters`,
     `chapters-${bibleId}-${bookId}`
@@ -49,6 +164,41 @@ export async function getChapters(bibleId: string, bookId: string): Promise<Bibl
 }
 
 export async function getChapter(bibleId: string, chapterId: string): Promise<BibleContent> {
+  if (bibleId.startsWith('local-')) {
+    // chapterId is expected like `${bookId}-c{number}` where bookId is `${bibleId}-b{number}`
+    const parts = chapterId.split('-c');
+    const cnum = parts[1] || '';
+    const bookId = parts[0];
+    const bparts = bookId.split('-b');
+    const bnum = bparts[1] || '';
+
+    const parsed = await getLocalParsedBible(bibleId);
+    const book = parsed.books.find((b) => b.number === bnum);
+    if (!book) throw new Error('Book not found');
+    const chapter = book.chapters.find((ch) => ch.number === cnum);
+    if (!chapter) throw new Error('Chapter not found');
+
+    // Build HTML content
+    const verses = chapter.verses;
+    const verseCount = verses.length;
+    const contentHtml = verses.map((v) => {
+      const vnum = v.number;
+      const txt = v.text;
+      return `<p><span class="v">${vnum}</span> ${txt}</p>`;
+    }).join('\n');
+
+    const bookName = book.name;
+    const content: BibleContent = {
+      id: chapterId,
+      bookId: bookId,
+      chapterId: chapterId,
+      reference: `${bookName} ${cnum}`,
+      content: contentHtml,
+      verseCount,
+    };
+    return content;
+  }
+
   return fetchWithCache<BibleContent>(
     `${API_URL}bibles/${bibleId}/chapters/${chapterId}?content-type=html&include-notes=false&include-titles=true&include-chapter-numbers=false&include-verse-numbers=true&include-verse-spans=true`,
     `chapter-${bibleId}-${chapterId}`
@@ -73,6 +223,10 @@ export async function searchBible(bibleId: string, query: string) {
 
 // Mock audio data - In production, this would come from an audio Bible API
 export async function getChapterAudio(bibleId: string, chapterId: string): Promise<BibleAudio | null> {
+  if (bibleId.startsWith('local-')) {
+    return null;
+  }
+
   // Try several possible audio endpoints. The official scripture.api.bible may not
   // expose audio on the same path, so we attempt a few common variants and return
   // the first successful result. If none succeed, return null.

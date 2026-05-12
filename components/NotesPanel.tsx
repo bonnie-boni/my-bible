@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Note } from '@/lib/types';
 import { StickyNote, X, Plus } from 'lucide-react';
 
@@ -11,19 +11,18 @@ interface NotesPanelProps {
 }
 
 export default function NotesPanel({ verseReference, isOpen = true, onClose }: NotesPanelProps) {
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useState<Note[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const savedNotes = localStorage.getItem('bibleNotes');
+    if (!savedNotes) return [];
+    try {
+      return JSON.parse(savedNotes) as Note[];
+    } catch {
+      return [];
+    }
+  });
   const [newNote, setNewNote] = useState('');
   const [isAddingNote, setIsAddingNote] = useState(false);
-
-  useEffect(() => {
-    // Load notes from localStorage
-    if (typeof window !== 'undefined') {
-      const savedNotes = localStorage.getItem('bibleNotes');
-      if (savedNotes) {
-        setNotes(JSON.parse(savedNotes));
-      }
-    }
-  }, []);
 
   const addNote = () => {
     if (!newNote.trim() || !verseReference) return;

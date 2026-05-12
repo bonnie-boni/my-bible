@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Maximize2, VolumeX } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 
 interface AudioPlayerProps {
   currentVerse?: string;
@@ -107,10 +107,6 @@ export default function AudioPlayer({
 
     const a = audioRef.current;
     a.src = audioUrl || '';
-    // set duration if provided
-    if (audioDuration) {
-      setDuration(audioDuration);
-    }
 
     const onLoaded = () => {
       setDuration(a.duration || audioDuration || 0);
@@ -140,7 +136,7 @@ export default function AudioPlayer({
       a.pause();
       // keep audioRef for reuse
     };
-  }, [audioUrl, audioDuration, totalVerses, onVerseChange]);
+  }, [audioUrl, audioDuration, totalVerses, onVerseChange, usingAudioElement]);
 
   // Fallback simulated timer when not using audio element
   useEffect(() => {

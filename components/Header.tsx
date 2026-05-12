@@ -1,7 +1,6 @@
 'use client';
 
-import {Menu, StickyNote } from 'lucide-react';
-import { useState } from 'react';
+import { Menu, StickyNote } from 'lucide-react';
 
 interface HeaderProps {
   selectedVersion?: string;
@@ -11,19 +10,11 @@ interface HeaderProps {
 }
 
 export default function Header({ 
-  selectedVersion = 'NIV', 
+  selectedVersion = 'KJV', 
   onVersionChange,
   onMenuClick,
   onNotesClick 
 }: HeaderProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Search:', searchQuery);
-  };
-
   return (
     <header className="bg-gray-900 border-b border-gray-800 px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
       {/* Left Section - Logo & Menu */}
@@ -47,6 +38,21 @@ export default function Header({
 
       {/* Right Section - Controls */}
       <div className="no_show flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        {/* Version buttons (local/public) */}
+        <div className="flex items-center gap-1 sm:gap-2 mr-1 sm:mr-2">
+          <button
+            onClick={() => onVersionChange && onVersionChange('GNB')}
+            className={`px-2 py-1 rounded ${selectedVersion === 'GNB' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'} text-[10px] sm:text-xs`}
+          >GNB</button>
+          <button
+            onClick={() => onVersionChange && onVersionChange('KJV')}
+            className={`px-2 py-1 rounded ${selectedVersion === 'KJV' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'} text-[10px] sm:text-xs`}
+          >KJV</button>
+          <button
+            onClick={() => onVersionChange && onVersionChange('SWA')}
+            className={`px-2 py-1 rounded ${selectedVersion === 'SWA' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'} text-[10px] sm:text-xs`}
+          >SWA</button>
+        </div>
      
         {/* Notes button (mobile) + User avatar (desktop) */}
         <button

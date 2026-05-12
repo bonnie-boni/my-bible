@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Navigation from '@/components/Navigation';
 import BibleReader from '@/components/BibleReader';
 import NotesPanel from '@/components/NotesPanel';
@@ -19,7 +19,8 @@ export default function Home() {
   const [audioNarrator, setAudioNarrator] = useState<string | undefined>(undefined);
   const [audioDuration, setAudioDuration] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
-  const [bibleId, setBibleId] = useState('de4e12af7f28f599-01'); // ESV Bible
+  const [bibleId, setBibleId] = useState('local-kingjames');
+  const [selectedVersion, setSelectedVersion] = useState('KJV');
   const [currentVerse, setCurrentVerse] = useState<number>(1);
   
   // Mobile menu states
@@ -47,55 +48,7 @@ export default function Home() {
     return `${content.reference}:${currentVerse}`;
   };
 
-  // Load books on mount
-  useEffect(() => {
-    async function loadBooks() {
-      try {
-        setLoading(true);
-        const booksData = await getBooks(bibleId);
-        
-        // Get chapters for each book
-        const booksWithChapters = await Promise.all(
-          booksData.map(async (book) => {
-            try {
-              const chapters = await getChapters(bibleId, book.id);
-              return {
-                ...book,
-                chapters: chapters,
-                chaptersCount: chapters.length,
-              };
-            } catch (error) {
-              console.error(`Error loading chapters for ${book.name}:`, error);
-              return {
-                ...book,
-                chapters: [],
-                chaptersCount: 0,
-              };
-            }
-          })
-        );
-        
-        setBooks(booksWithChapters);
-
-        // Auto-select John Chapter 1 (match abbreviation normalized)
-        const john = booksWithChapters.find(b => (b.abbreviation || '').toUpperCase() === 'JHN');
-        if (john && john.chapters && john.chapters.length > 0) {
-          setSelectedBook(john);
-          const firstChapter = john.chapters[0];
-          setSelectedChapterId(firstChapter.id);
-          setSelectedChapterNumber(firstChapter.number);
-          loadChapter(firstChapter.id);
-        }
-      } catch (error) {
-        console.error('Error loading books:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadBooks();
-  }, [bibleId]);
-
-  const loadChapter = async (chapterId: string) => {
+  const loadChapter = useCallback(async (chapterId: string) => {
     setLoading(true);
     try {
       const chapterData = await getChapter(bibleId, chapterId);
@@ -124,7 +77,55 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [bibleId]);
+
+  // Load books on mount
+  useEffect(() => {
+    async function loadBooks() {
+      try {
+        setLoading(true);
+        const booksData = await getBooks(bibleId);
+
+        // Get chapters for each book
+        const booksWithChapters = await Promise.all(
+          booksData.map(async (book) => {
+            try {
+              const chapters = await getChapters(bibleId, book.id);
+              return {
+                ...book,
+                chapters: chapters,
+                chaptersCount: chapters.length,
+              };
+            } catch (error) {
+              console.error(`Error loading chapters for ${book.name}:`, error);
+              return {
+                ...book,
+                chapters: [],
+                chaptersCount: 0,
+              };
+            }
+          })
+        );
+
+        setBooks(booksWithChapters);
+
+        // Auto-select first available book/chapter for local files
+        const firstBook = booksWithChapters.find((b) => (b.chapters?.length || 0) > 0);
+        if (firstBook && firstBook.chapters && firstBook.chapters.length > 0) {
+          setSelectedBook(firstBook);
+          const firstChapter = firstBook.chapters[0];
+          setSelectedChapterId(firstChapter.id);
+          setSelectedChapterNumber(firstChapter.number);
+          loadChapter(firstChapter.id);
+        }
+      } catch (error) {
+        console.error('Error loading books:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadBooks();
+  }, [bibleId, loadChapter]);
 
   const handleBookSelect = async (book: BibleBook) => {
     setSelectedBook(book);
@@ -156,30 +157,18 @@ export default function Home() {
   };
 
   const handleVersionChange = async (version: string) => {
-    // Try to find a matching bible by querying the API list
-    try {
-      setLoading(true);
-      const bibles = await (await import('@/lib/bible-api')).getBibles();
-      const match = bibles.find(b => {
-        const name = (b.name || '').toLowerCase();
-        const abbr = (b.abbreviation || '').toLowerCase();
-        return name.includes(version.toLowerCase()) || abbr === version.toLowerCase();
-      });
-      if (match) {
-        setBibleId(match.id);
-        // clear current selections while new bible loads
-        setSelectedBook(null);
-        setSelectedChapterId(null);
-        setSelectedChapterNumber(null);
-        setContent(null);
-      } else {
-        console.warn('No matching bible found for version', version);
-      }
-    } catch (err) {
-      console.error('Error fetching bibles list:', err);
-    } finally {
-      setLoading(false);
-    }
+    setSelectedVersion(version);
+    const map: Record<string, string> = {
+      GNB: 'local-goodnews',
+      KJV: 'local-kingjames',
+      SWA: 'local-swahili',
+    };
+    const mapped = map[version] || 'local-kingjames';
+    setBibleId(mapped);
+    setSelectedBook(null);
+    setSelectedChapterId(null);
+    setSelectedChapterNumber(null);
+    setContent(null);
   };
 
   const handleChapterSelect = (chapterId: string, chapterNumber: string) => {
@@ -253,6 +242,7 @@ export default function Home() {
         onMenuClick={() => setIsNavOpen(!isNavOpen)}
         onNotesClick={() => setIsNotesOpen(!isNotesOpen)}
         onVersionChange={handleVersionChange}
+        selectedVersion={selectedVersion}
       />
       
       <div className="flex-1 flex overflow-hidden relative">

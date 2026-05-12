@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BibleBook } from '@/lib/types';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 
@@ -25,12 +25,7 @@ export default function Navigation({
 }: NavigationProps) {
   const [expandedBook, setExpandedBook] = useState<string | null>(selectedBook?.id || null);
   const [testamentExpanded, setTestamentExpanded] = useState({ old: true, new: true });
-
-  useEffect(() => {
-    if (selectedBook?.id) {
-      setExpandedBook(selectedBook.id);
-    }
-  }, [selectedBook]);
+  const expandedBookId = selectedBook?.id || expandedBook;
 
   const oldTestamentBooks = books.filter(book => {
     const abbr = book.abbreviation?.toUpperCase();
@@ -52,7 +47,7 @@ export default function Navigation({
   });
 
   const handleBookClick = (book: BibleBook) => {
-    if (expandedBook === book.id) {
+    if (expandedBookId === book.id) {
       setExpandedBook(null);
     } else {
       setExpandedBook(book.id);
@@ -123,9 +118,9 @@ export default function Navigation({
                     }`}
                   >
                     <span className="truncate">{book.name}</span>
-                    {expandedBook === book.id && <ChevronDown size={14} className="flex-shrink-0 ml-2" />}
+                    {expandedBookId === book.id && <ChevronDown size={14} className="flex-shrink-0 ml-2" />}
                   </button>
-                  {expandedBook === book.id && book.chapters && (
+                  {expandedBookId === book.id && book.chapters && (
                     <div className="grid grid-cols-5 sm:grid-cols-6 gap-1 px-4 sm:px-6 py-2 bg-gray-950">
                       {book.chapters.map((chapter) => (
                         <button
@@ -168,9 +163,9 @@ export default function Navigation({
                     }`}
                   >
                     <span className="truncate">{book.name}</span>
-                    {expandedBook === book.id && <ChevronDown size={14} className="flex-shrink-0 ml-2" />}
+                    {expandedBookId === book.id && <ChevronDown size={14} className="flex-shrink-0 ml-2" />}
                   </button>
-                  {expandedBook === book.id && book.chapters && (
+                  {expandedBookId === book.id && book.chapters && (
                     <div className="grid grid-cols-5 sm:grid-cols-6 gap-1 px-4 sm:px-6 py-2 bg-gray-950">
                       {book.chapters.map((chapter) => (
                         <button
