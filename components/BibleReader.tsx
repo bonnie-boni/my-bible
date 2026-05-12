@@ -2,7 +2,22 @@
 
 import { BibleContent, BibleBook } from '@/lib/types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+const HIGHLIGHT_COLORS = [
+  '#fef08a',
+  '#fdba74',
+  '#fca5a5',
+  '#f9a8d4',
+  '#c4b5fd',
+  '#93c5fd',
+  '#86efac',
+  '#67e8f9',
+  '#d9f99d',
+  '#e5e7eb',
+];
+
+const HIGHLIGHT_STORAGE_KEY = 'verse-highlights-v1';
 
 interface BibleReaderProps {
   content: BibleContent | null;
@@ -26,16 +41,122 @@ export default function BibleReader({
   currentVerse,
 }: BibleReaderProps) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const [selectedColor, setSelectedColor] = useState<string>(HIGHLIGHT_COLORS[0]);
+  const [allHighlights, setAllHighlights] = useState<Record<string, Record<string, string>>>(() => {
+    if (typeof window === 'undefined') return {};
+    const raw = window.localStorage.getItem(HIGHLIGHT_STORAGE_KEY);
+    if (!raw) return {};
+    try {
+      return JSON.parse(raw) as Record<string, Record<string, string>>;
+    } catch {
+      return {};
+    }
+  });
+  const chapterKey = content?.id || '';
+  const chapterHighlights = useMemo(() => {
+    if (!chapterKey) return {} as Record<string, string>;
+    return allHighlights[chapterKey] || {};
+  }, [allHighlights, chapterKey]);
+
+  const updateChapterHighlight = useCallback((verseNumber: string, color: string | null) => {
+    if (!chapterKey) return;
+    setAllHighlights((prev) => {
+      const next = { ...prev };
+      const chapter = { ...(next[chapterKey] || {}) };
+
+      if (!color) {
+        delete chapter[verseNumber];
+      } else {
+        chapter[verseNumber] = color;
+      }
+
+      if (Object.keys(chapter).length === 0) {
+        delete next[chapterKey];
+      } else {
+        next[chapterKey] = chapter;
+      }
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(HIGHLIGHT_STORAGE_KEY, JSON.stringify(next));
+      }
+
+      return next;
+    });
+  }, [chapterKey]);
+
+  useEffect(() => {
+    const contentNode = contentRef.current;
+    if (!contentNode) return;
+
+    const verseParagraphs = contentNode.querySelectorAll('p');
+    verseParagraphs.forEach((p) => {
+      const paragraph = p as HTMLElement;
+      if (paragraph.dataset.verse) return;
+
+      const verseNumberElement = paragraph.querySelector('.v');
+      const numberText = verseNumberElement?.textContent?.trim();
+      if (!numberText) return;
+
+      paragraph.dataset.verse = numberText;
+      paragraph.classList.add('verse-line');
+    });
+
+    const handleVerseClick = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      const verseElement = target.closest('[data-verse]') as HTMLElement | null;
+      if (!verseElement) return;
+
+      const verse = verseElement.dataset.verse;
+      if (!verse) return;
+
+      if (selectedColor === 'clear') {
+        updateChapterHighlight(verse, null);
+      } else {
+        updateChapterHighlight(verse, selectedColor);
+      }
+    };
+
+    contentNode.addEventListener('click', handleVerseClick);
+
+    return () => {
+      contentNode.removeEventListener('click', handleVerseClick);
+    };
+  }, [content?.id, selectedColor, updateChapterHighlight]);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    const verseElements = contentRef.current.querySelectorAll('[data-verse]');
+    verseElements.forEach((el) => {
+      const verseElement = el as HTMLElement;
+      const verse = verseElement.dataset.verse;
+
+      verseElement.classList.add('verse-line');
+
+      if (verse && chapterHighlights[verse]) {
+        verseElement.style.color = chapterHighlights[verse];
+        verseElement.style.backgroundColor = '';
+        verseElement.style.borderRadius = '';
+        verseElement.style.padding = '';
+      } else {
+        verseElement.style.color = '';
+        verseElement.style.backgroundColor = '';
+        verseElement.style.borderRadius = '';
+        verseElement.style.padding = '';
+      }
+    });
+  }, [content?.id, chapterHighlights]);
 
   useEffect(() => {
     if (!contentRef.current || !currentVerse) return;
 
-    const highlighted = contentRef.current.querySelectorAll('.verse-highlight');
-    highlighted.forEach(el => el.classList.remove('verse-highlight'));
+    const highlighted = contentRef.current.querySelectorAll('.verse-focus-highlight');
+    highlighted.forEach(el => el.classList.remove('verse-focus-highlight'));
 
     const verseElement = contentRef.current.querySelector(`[data-verse="${currentVerse}"]`);
     if (verseElement) {
-      verseElement.classList.add('verse-highlight');
+      verseElement.classList.add('verse-focus-highlight');
       verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [currentVerse]);
@@ -73,6 +194,28 @@ export default function BibleReader({
           <p className="text-gray-400 uppercase tracking-wider text-xs sm:text-sm">
             Chapter {chapterNumber}
           </p>
+        </div>
+
+        <div className="mb-5 rounded-lg border border-gray-800 bg-gray-900/60 p-3">
+          <p className="text-xs text-gray-300 mb-2">Tap a color, then click verses to highlight</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {HIGHLIGHT_COLORS.map((color) => (
+              <button
+                key={color}
+                onClick={() => setSelectedColor(color)}
+                className={`h-6 w-6 rounded-full border ${selectedColor === color ? 'border-white' : 'border-gray-600'}`}
+                style={{ backgroundColor: color }}
+                aria-label={`Select highlight color ${color}`}
+                title={color}
+              />
+            ))}
+            <button
+              onClick={() => setSelectedColor('clear')}
+              className={`px-2 py-1 text-xs rounded border ${selectedColor === 'clear' ? 'border-white text-white' : 'border-gray-600 text-gray-300'}`}
+            >
+              Erase
+            </button>
+          </div>
         </div>
 
         {/* Bible Content */}
@@ -171,6 +314,19 @@ export default function BibleReader({
           padding: 2px 4px;
           border-radius: 4px;
           transition: background-color 0.3s ease;
+        }
+
+        .bible-content .verse-focus-highlight {
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) inset;
+        }
+
+        .bible-content .verse-line {
+          cursor: pointer;
+          transition: box-shadow 0.2s ease;
+        }
+
+        .bible-content .verse-line:hover {
+          box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.35) inset;
         }
 
         .bible-content .v {

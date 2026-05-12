@@ -72,6 +72,93 @@ async function getLocalParsedBible(bibleId: string): Promise<LocalParsedBible> {
 
   const res = await fetch(path);
   const text = await res.text();
+
+  // .spb files are tab-delimited text, not XML
+  if (path.toLowerCase().endsWith('.spb')) {
+    const lines = text.split(/\r?\n/);
+    const separatorIndex = lines.findIndex((line) => line.trim() === '-----');
+
+    if (separatorIndex === -1) {
+      throw new Error('Invalid SPB format: missing separator');
+    }
+
+    const booksByNumber = new Map<string, LocalParsedBook>();
+
+    // Parse book metadata block
+    for (let i = 0; i < separatorIndex; i += 1) {
+      const line = lines[i].trim();
+      if (!line || line.startsWith('##')) continue;
+
+      const parts = line.split('\t');
+      if (parts.length < 3) continue;
+      const [bookNumber, bookName, chapterCountRaw] = parts;
+      if (!/^\d+$/.test(bookNumber)) continue;
+
+      const chapterCount = Number(chapterCountRaw);
+      const chapters: LocalParsedChapter[] = [];
+      for (let c = 1; c <= chapterCount; c += 1) {
+        chapters.push({ number: String(c), verses: [] });
+      }
+
+      booksByNumber.set(bookNumber, {
+        number: bookNumber,
+        name: bookName,
+        chapters,
+      });
+    }
+
+    // Parse verse rows
+    for (let i = separatorIndex + 1; i < lines.length; i += 1) {
+      const raw = lines[i];
+      if (!raw || !raw.trim()) continue;
+
+      const parts = raw.split('\t');
+      if (parts.length < 5) continue;
+
+      const bookNumber = parts[1]?.trim();
+      const chapterNumber = parts[2]?.trim();
+      const verseNumber = parts[3]?.trim();
+      const verseText = parts.slice(4).join('\t').trim();
+
+      if (!bookNumber || !chapterNumber || !verseNumber) continue;
+
+      let book = booksByNumber.get(bookNumber);
+      if (!book) {
+        book = {
+          number: bookNumber,
+          name: `Book ${bookNumber}`,
+          chapters: [],
+        };
+        booksByNumber.set(bookNumber, book);
+      }
+
+      let chapter = book.chapters.find((c) => c.number === chapterNumber);
+      if (!chapter) {
+        chapter = { number: chapterNumber, verses: [] };
+        book.chapters.push(chapter);
+      }
+
+      chapter.verses.push({ number: verseNumber, text: verseText });
+    }
+
+    const parsedSpb: LocalParsedBible = {
+      books: Array.from(booksByNumber.values())
+        .sort((a, b) => Number(a.number) - Number(b.number))
+        .map((book) => ({
+          ...book,
+          chapters: [...book.chapters]
+            .sort((a, b) => Number(a.number) - Number(b.number))
+            .map((chapter) => ({
+              ...chapter,
+              verses: [...chapter.verses].sort((a, b) => Number(a.number) - Number(b.number)),
+            })),
+        })),
+    };
+
+    localBibleCache.set(bibleId, parsedSpb);
+    return parsedSpb;
+  }
+
   const parser = new DOMParser();
   const doc = parser.parseFromString(text, 'application/xml');
 
@@ -184,7 +271,7 @@ export async function getChapter(bibleId: string, chapterId: string): Promise<Bi
     const contentHtml = verses.map((v) => {
       const vnum = v.number;
       const txt = v.text;
-      return `<p><span class="v">${vnum}</span> ${txt}</p>`;
+      return `<p class="verse-line" data-verse="${vnum}"><span class="v">${vnum}</span> ${txt}</p>`;
     }).join('\n');
 
     const bookName = book.name;

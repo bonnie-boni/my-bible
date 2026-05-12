@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Navigation from '@/components/Navigation';
 import BibleReader from '@/components/BibleReader';
 import NotesPanel from '@/components/NotesPanel';
@@ -22,6 +22,13 @@ export default function Home() {
   const [bibleId, setBibleId] = useState('local-kingjames');
   const [selectedVersion, setSelectedVersion] = useState('KJV');
   const [currentVerse, setCurrentVerse] = useState<number>(1);
+  const pendingLocationRef = useRef<{ bookNumber: string | null; chapterNumber: string | null } | null>(null);
+    const getBookNumberFromId = (bookId?: string | null): string | null => {
+      if (!bookId) return null;
+      const parts = bookId.split('-b');
+      return parts.length > 1 ? parts[1] : null;
+    };
+
   
   // Mobile menu states
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -109,15 +116,25 @@ export default function Home() {
 
         setBooks(booksWithChapters);
 
-        // Auto-select first available book/chapter for local files
-        const firstBook = booksWithChapters.find((b) => (b.chapters?.length || 0) > 0);
-        if (firstBook && firstBook.chapters && firstBook.chapters.length > 0) {
-          setSelectedBook(firstBook);
-          const firstChapter = firstBook.chapters[0];
-          setSelectedChapterId(firstChapter.id);
-          setSelectedChapterNumber(firstChapter.number);
-          loadChapter(firstChapter.id);
+        const pendingLocation = pendingLocationRef.current;
+
+        // Keep same book/chapter when switching versions when possible
+        const bookToSelect = pendingLocation?.bookNumber
+          ? booksWithChapters.find((b) => getBookNumberFromId(b.id) === pendingLocation.bookNumber)
+          : booksWithChapters.find((b) => (b.chapters?.length || 0) > 0);
+
+        if (bookToSelect && bookToSelect.chapters && bookToSelect.chapters.length > 0) {
+          const chapterToSelect = pendingLocation?.chapterNumber
+            ? bookToSelect.chapters.find((c) => c.number === pendingLocation.chapterNumber) || bookToSelect.chapters[0]
+            : bookToSelect.chapters[0];
+
+          setSelectedBook(bookToSelect);
+          setSelectedChapterId(chapterToSelect.id);
+          setSelectedChapterNumber(chapterToSelect.number);
+          loadChapter(chapterToSelect.id);
         }
+
+        pendingLocationRef.current = null;
       } catch (error) {
         console.error('Error loading books:', error);
       } finally {
@@ -158,6 +175,11 @@ export default function Home() {
 
   const handleVersionChange = async (version: string) => {
     setSelectedVersion(version);
+    pendingLocationRef.current = {
+      bookNumber: getBookNumberFromId(selectedBook?.id),
+      chapterNumber: selectedChapterNumber,
+    };
+
     const map: Record<string, string> = {
       GNB: 'local-goodnews',
       KJV: 'local-kingjames',
